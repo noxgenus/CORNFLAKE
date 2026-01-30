@@ -7,7 +7,7 @@
    ----------------------------------------------------------------------------
 
 */
-String MBversion = "1.0";
+String MBversion = "1.2";
 /*
 
    ----------------------------------------------------------------------------
@@ -47,7 +47,39 @@ String MBversion = "1.0";
    1- If sketch increases, tune delay of remote! (if wireless!)
 
 */
+// ============================= DRIVER =============================================// 
+// ---------------- YX5300 / HW-311 NON-BLOCKING DRIVER ----------------
 
+static void yxSendCmd(HardwareSerial &ser, uint8_t cmd, uint16_t param) {
+  uint8_t pkt[10];
+  pkt[0] = 0x7E;
+  pkt[1] = 0xFF;
+  pkt[2] = 0x06;
+  pkt[3] = cmd;
+  pkt[4] = 0x00;   // 0 = no feedback, avoids blocking
+  pkt[5] = (param >> 8) & 0xFF;
+  pkt[6] = (param     ) & 0xFF;
+
+  uint16_t sum = pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6];
+  uint16_t chk = 0 - sum;
+  pkt[7] = (chk >> 8) & 0xFF;
+  pkt[8] = (chk     ) & 0xFF;
+
+  pkt[9] = 0xEF;
+
+  ser.write(pkt, 10);
+}
+
+// ---- common commands ----
+#define YX_PLAY_TRACK 0x03
+#define YX_SET_VOL    0x06
+#define YX_STOP       0x16
+#define YX_NEXT       0x01
+#define YX_PREV       0x02
+#define YX_PAUSE      0x0E
+#define YX_RESUME     0x0D
+
+// ============================================= END DRIVER =============================================// 
 
 #include <SPI.h>
 #include <Servo.h>
@@ -62,13 +94,6 @@ bool busyLed2 = false;
 
 
 
-#include "YX5300_ESP32.h"
-
-// *make sure the RX on the YX5300 goes to the TX on the ESP32, and vice-versa
-#define RX 16
-#define TX 17
-
-YX5300_ESP32 mp3; 
 // ==================================================================================
 // ----------------------------------  SERVOS  --------------------------------------
 // ==================================================================================
@@ -114,6 +139,7 @@ long counter = 0;
 unsigned long lastStartStopTime = 0;
 int OLEDinterval = 200; // millisec
 
+byte playTrack[] = {0x7E, 0xFF, 0x06, 0x03, 0x00, 0x00, 0x01, 0xEF};
 
 // ==============================================================================
 // -------------------------- VALUES ARRAY --------------------------------------
@@ -160,6 +186,7 @@ unsigned long now2 = millis();  // NOW2 FOR DEBOUNCE
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET -1   //   QT-PY / XIAO
+
 Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define NUMFLAKES 10
@@ -206,11 +233,13 @@ int joyY = 90; // 0..180
 boolean debug = false;
 boolean busyflag = false;
 
+int indexMP3 = 2;
 
 void setup() {
 
   Serial.begin(9600);   // debug monitor
   Serial1.begin(9600);  // HC12 C044 (RX) (CONTROL INPUT)
+  Serial4.begin(9600);  // YX5300
 
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
@@ -234,12 +263,12 @@ void setup() {
   display.clearDisplay();
   oledAll();
 
-
   driveMixedTank(0, 0);
 
-  mp3 = YX5300_ESP32(Serial4, RX, TX);
- 
-  mp3.playTrack(1);
+   delay(1000);
+    yxSendCmd(Serial4, YX_SET_VOL, 15);   // volume 0..30
+    delay(50);
+    yxSendCmd(Serial4, YX_PLAY_TRACK, 1); // plays /MP3/0001.mp3
 
     delay(1000);
     Serial.println("R2D2 V1");
@@ -270,6 +299,7 @@ void setup() {
 void loop() {
 
   now2 = millis();
+
 
   // ========================= LED PULSING =====================================
 
@@ -355,16 +385,16 @@ void loop() {
           if (debug == true) {Serial.print(" head rotate: ");Serial.print(pos);}
        
             if (pos > 95) {
-                posipan = (posipan + 2); // slow
+                posipan = (posipan + 4); // slow
           
               } else if (pos < 85) {
-                posipan = (posipan - 2); // faster
+                posipan = (posipan - 4); // faster
               }
               if (posipan > 180) posipan = 180; //limit upper value
               if (posipan < 0) posipan = 0; //limit lower value
 
             lastKnownPos[3] = posipan;
-            servoHead.write(lastKnownPos[3]);
+            //servoHead.write(lastKnownPos[3]);
           break;
         case 4: // TILT
           if (debug == true) {Serial.print(" tilt: ");Serial.print(pos);}
@@ -377,6 +407,7 @@ void loop() {
         case 6: // SHOULDER L
           if (debug == true) {Serial.print(" shoulderL: ");Serial.print(pos);}
             lastKnownPos[6] = pos;
+            servoHead.write(lastKnownPos[6]);
           break;
         case 7: // ARM L
           if (debug == true) {Serial.print(" armL: ");Serial.print(pos);}
@@ -411,15 +442,29 @@ void loop() {
           break;
         case 21: // yellow button
             lastKnownPos[14] = pos;
-            mp3.playTrack(2);
+            if (pos == 1) {
+
+              indexMP3++;
+
+              if (indexMP3 > 16){
+                indexMP3 = 2;
+              }
+
+                yxSendCmd(Serial4, YX_PLAY_TRACK, indexMP3); // plays random
+            }
+       
           break;
         case 22: // red button
             lastKnownPos[15] = pos;
-            mp3.playTrack(3);
+          if (pos == 1) {
+                //yxSendCmd(Serial4, YX_PLAY_TRACK, 3); // plays
+            }
           break;
         case 23: // fire button
             lastKnownPos[16] = pos;
-            mp3.playTrack(4);
+        if (pos == 1) {
+                yxSendCmd(Serial4, YX_PLAY_TRACK, 16); // plays
+            }
           break;
         
 
