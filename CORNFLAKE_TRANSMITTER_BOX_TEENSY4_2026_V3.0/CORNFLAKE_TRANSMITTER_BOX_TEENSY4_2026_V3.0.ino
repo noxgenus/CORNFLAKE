@@ -24,24 +24,29 @@ COMMS:
 
 move(#)
 
-    move(1, val1);    //fwd/rev joy
-    move(2, val2);    //steering joy
-    move(3, val3);    //? top joy rotate
-    move(4, val4);    //tilt joypad
-    move(5, val5);    //pan joypad
-    move(6, val6);    //shoulder L pot
-    move(7, val7);    // arm L pot
-    move(8, val8);    //shoulder R pot
-    move(9, val9);    //arm R pot
-    move(10, val10);  //gripper L
-    move(11, val11);  //gripper R
-    move(12, val12);  //rc led contrller
+/*
+      move(1, val1);    //fwd/rev joy
+      move(2, val2);    //steering joy
+      move(3, val3);    //? top joy rotate
+      move(4, val4);    //tilt joypad
+      move(5, val5);    //pan joypad
 
-    event:
-    move(20, buttonVal1);  //button1
-    move(21, buttonVal2);  //button2
-    move(22, buttonVal3);  //button3
-    move(23, buttonVal4);  //joybutt
+      move(6, val6);    // AX12 ID1
+      move(7, val7);    // AX12 ID2
+      move(8, val8);    // AX12 ID3
+      move(9, val9);    // AX12 ID4
+      move(10, val10);  // AX12 ID5
+
+      move(11, val11);  // AX12 ID6
+      move(12, val12);  // AX12 ID7
+      move(13, val13);  // AX12 ID8
+      move(14, val14);  // AX12 ID9
+      move(15, val15);  // AX12 ID10
+
+      move(20, val16);  //button blue
+      move(21, val17);  //button yellow
+      move(22, val18);  //button red
+      move(23, val19);  //button joystick
 
                 
     1-drive               int joypin1 = A0; //Joystick X1
@@ -204,13 +209,13 @@ void setup() {
     move(3, val3);    //? top joy rotate
     move(4, val4);    //tilt joypad
     move(5, val5);    //pan joypad
-    move(6, val6);    //shoulder L pot
-    move(7, val7);    // arm L pot
-    move(8, val8);    //shoulder R pot
-    move(9, val9);    //arm R pot
-    move(10, val10);  //gripper L
-    move(11, val11);  //gripper R
-    move(12, val12);  //rc led contrller
+    move(6, val6);    // ax 1
+    move(7, val7);    // ax 2
+    move(8, val8);    // ax 3
+    move(9, val9);    // ax 4
+    move(10, val10);  // ax 5
+    move(11, val11);  // ax 6
+    move(12, val12);  // ax 7
 
     move(20, buttonVal1);  //button1
     move(21, buttonVal2);  //button2
@@ -278,15 +283,15 @@ void loop(){
   //MAP ANALOG JOYSTICK VALS TO SERVO VALS (0-90-180)
   val1 = map(val1, 0, 1023, 180, 0); //reverse pot
   val2 = map(val2, 0, 1023, 180, 0); //reverse pot
-  val3 = map(val3, 0, 1023, 0, 180);
-  val4 = map(val4, 0, 1023, 0, 180);
-  val5 = map(val5, 0, 1023, 0, 180);
+  val3 = map(val3, 0, 1023, 0, 180); // joy rotate
+  val4 = map(val4, 0, 1023, 0, 180); // pan
+  val5 = map(val5, 0, 1023, 0, 180); // tilt
 
-  val6 = map(val6, 0, 1023, 0, 180);
-  val7 = map(val7, 0, 1023, 0, 180);
-  val8 = map(val8, 0, 1023, 0, 180);
-  val9 = map(val9, 0, 1023, 0, 180);
-  val10 = map(val10, 0, 1023, 0, 180);
+  val6 = map(val6, 0, 1023, 0, 180); // ax12 1
+  val7 = map(val7, 0, 1023, 0, 180); // ax12 2
+  val8 = map(val8, 0, 1023, 0, 180); // ax12 3
+  val9 = map(val9, 0, 1023, 0, 180); // ax12 4
+  val10 = map(val10, 0, 1023, 0, 180); // ax12 5
   //val11 = map(val11, 0, 1023, 0, 180);
 
   // Serial.print("VAL1: ");
